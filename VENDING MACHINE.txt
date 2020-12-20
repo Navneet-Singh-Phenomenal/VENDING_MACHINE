@@ -1,0 +1,203 @@
+	
+									Vending machine
+								      __________________
+
+
+*The machine can take only two types of coins of denomination 1and 2 in any order.It delivers only one product that is priced Rs. 3.
+ On receiving Rs. 3 the product is delivered.If it gets Rs. 4 then the product is delivered by returning a Re. 1 coin .
+ The clock speed is much higher than human response time,i.e. no coins can be deposited in same clock cycle.Design a circuit.
+
+SOLUTION:
+ 
+	Assuming
+	 2 inputs:                          2 outputs:
+ 	 Rs.1 coin                        P = Product delivered (when Rs. 3 paid)
+	 Rs. 2 coin                       R = Extra coin returned (when Rs. 4 paid)
+	For no coin (i.e.Re.0) go back to idle after time out. 
+
+
+
+								VERILOG CODE(BY MOORE)
+							      +++++++++++++++++++++++++
+
+
+module VENDING_MACHINE(DELIVER,RETURN,R1,R2,clk,reset);
+  output reg DELIVER;
+  output reg RETURN;
+  input R1;                                                               // Rs.1
+  input R2;								  //Rs.2
+  input clk;
+  input reset;
+  
+  reg [2:0] state;
+  reg [2:0] nextstate;
+  
+  parameter S0=0,S1=1,S2=2,S3=3,S4=4;
+  
+  always@(posedge reset)
+    state=S0;
+  
+  always@(negedge clk)
+    begin
+      case(state)
+        S0:begin 
+          	nextstate=R1?(R2?S0:S1):(R2?S2:S0);
+        	DELIVER=0; RETURN=0;
+        	end
+        S1:begin
+          nextstate=R1?(R2?S1:S2):(R2?S3:S1);
+        	DELIVER=0; RETURN=0;
+        	end
+        S2:begin
+          nextstate=R1?(R2?S2:S3):(R2?S4:S2);
+        	DELIVER=0; RETURN=0;
+        	end
+        S3:begin
+          	nextstate=S0;
+        	DELIVER=1; RETURN=0;
+          #(5) DELIVER=0;							// SHUT DOWN THE DOOR AFTER DELIVERED
+        	end
+        S4:begin
+          nextstate=S0;
+        	DELIVER=1; RETURN=1;
+          #(5) DELIVER=0; RETURN=0;						// SHUT DOWN THE DOOR AFTER DELIVERED AND RETURNED THE REMAINING MONEY
+        	end
+      endcase
+    end
+  
+  always@(nextstate)
+    state=nextstate;
+  
+endmodule
+
+
+
+									TESTBENCH
+								      +++++++++++++
+
+module stimulus;
+  reg R1;
+  reg R2;
+  reg clk;
+  reg reset;
+  wire DELIVER;
+  wire RETURN;
+  
+  VELDING_MACHINE DUT(DELIVER,RETURN,R1,R2,clk,reset);
+  
+  initial
+    begin
+      $dumpfile("dump.vcd");
+      $dumpvars(0);
+      
+      monitor;
+      clk=1;
+      reset=1;
+      #(2) reset=0;
+    end
+  
+  initial forever #(5) clk=~clk;
+  
+  initial
+    fork
+            R1=0; R2=0;
+      #(13) R1=1; #(13) R2=0;
+      #(23) R1=1; #(23) R2=0;
+      #(33) R1=1; #(33) R2=0;
+      #(53) R1=0; #(53) R2=1;
+      #(63) R1=0; #(63) R2=1;
+      
+      #(100) $finish;
+    join
+  
+  task monitor;
+    $monitor($time," R1=%b,R2=%b,DELIVER=%b,RETURN=%b",R1,R2,DELIVER,RETURN);
+  endtask
+  
+endmodule
+
+
+										OUTPUT
+									      +++++++++
+# KERNEL:                    0 R1=0,R2=0,DELIVER=x,RETURN=x
+# KERNEL:                    5 R1=0,R2=0,DELIVER=0,RETURN=0
+# KERNEL:                   13 R1=1,R2=0,DELIVER=0,RETURN=0
+# KERNEL:                   45 R1=1,R2=0,DELIVER=1,RETURN=0
+# KERNEL:                   50 R1=1,R2=0,DELIVER=0,RETURN=0
+# KERNEL:                   53 R1=0,R2=1,DELIVER=0,RETURN=0
+# KERNEL:                   75 R1=0,R2=1,DELIVER=1,RETURN=1
+# KERNEL:                   80 R1=0,R2=1,DELIVER=0,RETURN=0
+
+
+
+_____________________________________________________________________________________________________________________________________________________________________________________
+
+								MADE BY ME:::(CONFIRM BY TEACHERS IT WOULD BE BETTER)
+								     ****************************************
+
+
+           	     SAME THING I HAVE DONE BY MEALY METHOD USING ONLY THREE STATES(S0,S1,S2) INSTEAD OF FIVE STATES(S0,S1,S2,S3,S4)
+		#########################################################################################################################
+
+
+
+module VELDING_MACHINE(DELIVER,RETURN,R1,R2,clk,reset);
+  output reg DELIVER;
+  output reg RETURN;
+  input R1;
+  input R2;
+  input clk;
+  input reset;
+  
+  reg [2:0] state;
+  reg [2:0] nextstate;
+  
+  parameter S0=0,S1=1,S2=2;
+  
+  always@(posedge reset)
+    state=S0;
+  
+  always@(negedge clk)
+    begin
+      case(state)
+        S0:begin 
+          	nextstate=R1?(R2?S0:S1):(R2?S2:S0);
+        	DELIVER=0; 
+            RETURN=0;
+        	end
+        S1:begin
+          nextstate=R1?(R2?S1:S2):(R2?S0:S1);
+          DELIVER=R1?(R2?0:0):(R2?1:0);
+          RETURN=0;
+        	end
+        S2:begin
+          nextstate=R1?(R2?S2:S0):(R2?S0:S2);
+          DELIVER=R1?(R2?0:1):(R2?1:0);
+          RETURN=R1?(R2?0:0):(R2?1:0);
+        	end
+       
+      endcase
+    end
+  
+  always@(nextstate)
+    state=nextstate;
+  
+endmodule
+
+
+
+*TESTBENCH IS SAME AS ABOVE
+
+										OUTPUT
+									      _________
+# KERNEL:                    0 R1=0,R2=0,DELIVER=x,RETURN=x
+# KERNEL:                    5 R1=0,R2=0,DELIVER=0,RETURN=0
+# KERNEL:                   13 R1=1,R2=0,DELIVER=0,RETURN=0
+# KERNEL:                   35 R1=1,R2=0,DELIVER=1,RETURN=0
+# KERNEL:                   45 R1=1,R2=0,DELIVER=0,RETURN=0
+# KERNEL:                   53 R1=0,R2=1,DELIVER=0,RETURN=0
+# KERNEL:                   55 R1=0,R2=1,DELIVER=1,RETURN=0
+# KERNEL:                   65 R1=0,R2=1,DELIVER=0,RETURN=0
+# KERNEL:                   75 R1=0,R2=1,DELIVER=1,RETURN=1
+# KERNEL:                   85 R1=0,R2=1,DELIVER=0,RETURN=0
+# KERNEL:                   95 R1=0,R2=1,DELIVER=1,RETURN=1
